@@ -1,0 +1,25 @@
+{
+  "name": "toc-admin",
+  "version": "1.0.0",
+  "description": "The Organic Cosmos — Admin Panel",
+  "scripts": {
+    "build": "cd frontend && npm install && npm run build",
+    "start": "node backend/server.js",
+    "dev:api": "cd backend && node --watch server.js",
+    "dev:ui": "cd frontend && npm run dev",
+    "seed": "cd backend && node database/seed.js"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.14.0",
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.5.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
