@@ -1,7 +1,7 @@
 const { createClient } = require('@libsql/client');
 
 const client = createClient({
-  url:       process.env.TURSO_DATABASE_URL,
+  url:       process.env.TURSO_DATABASE_URL || 'file:' + __dirname + '/toc.db',
   authToken: process.env.TURSO_AUTH_TOKEN,
 });
 
