@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login.jsx';
 import Setup from './pages/Setup.jsx';
 import Dashboard from './pages/Dashboard.jsx';
@@ -47,7 +47,7 @@ export default function App() {
 
   return (
     <AuthCtx.Provider value={{ token, user, login, logout }}>
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           <Route path="/setup" element={needsSetup ? <Setup onDone={() => setNeedsSetup(false)} /> : <Navigate to="/login" />} />
           <Route path="/login" element={
@@ -58,7 +58,7 @@ export default function App() {
           <Route path="/products/:id/edit" element={token ? <ProductForm /> : <Navigate to="/login" />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </AuthCtx.Provider>
   );
 }
