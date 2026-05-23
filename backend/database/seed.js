@@ -1,29 +1,6 @@
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const bcrypt = require('bcryptjs');
-const db = require('./db');
-
-// --- Admin user ---
-const adminCount = db.prepare('SELECT COUNT(*) as c FROM admin_users').get().c;
-if (adminCount === 0) {
-  db.prepare('INSERT INTO admin_users (email, password_hash, name) VALUES (?, ?, ?)')
-    .run('admin@theorganiccosmos.com', bcrypt.hashSync('Admin@TOC2025', 12), 'TOC Admin');
-  console.log('  ✓ Admin created  →  admin@theorganiccosmos.com / Admin@TOC2025');
-} else {
-  console.log('  · Admin already exists — skipping');
-}
-
-// --- Products ---
-const existingCount = db.prepare('SELECT COUNT(*) as c FROM products').get().c;
-if (existingCount > 0) {
-  console.log(`  · ${existingCount} products already in DB — skipping seed`);
-  process.exit(0);
-}
-
-const insertProduct = db.prepare(`
-  INSERT OR IGNORE INTO products
-    (name,category,sub,flavor,weight,servings,serving_size,protein,price,badge,in_stock,img,img_bg,sku,description,tags,variant_key,variant_map)
-  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-`);
+const { client, init } = require('./db');
 
 const B = '/product-images/';
 
@@ -51,18 +28,43 @@ const products = [
   { name:'Multivitamin for Women', category:'Essentials', sub:'Multivitamin', flavor:'Unflavored', weight:'60 tab', servings:60, servingSize:'1 tablet', protein:null, price:799, badge:null, inStock:true, img:B+'multivitamin-women.png', imgBg:'#f5e0ea', sku:'TOC-ESS-MVW-60', description:'Complete daily multivitamin formulated for women with iron, folate, and biotin. Supports hormonal balance.', tags:['Iron & Folate','Hormonal Support','No Artificial Colours','Lab Tested'], variantKey:'Women', variantMap:{'Men':20,'Women':21} },
 ];
 
-const insert = db.transaction(() => {
-  for (const p of products) {
-    insertProduct.run(
-      p.name, p.category, p.sub || null, p.flavor,
-      p.weight || null, p.servings || 0, p.servingSize || null, p.protein || null,
-      p.price, p.badge || null, p.inStock ? 1 : 0,
-      p.img || null, p.imgBg || '#f0ede4', p.sku || null, p.description || null,
-      JSON.stringify(p.tags || []), p.variantKey || null, JSON.stringify(p.variantMap || {}),
-    );
-  }
-});
+async function seed() {
+  await init();
 
-insert();
-console.log(`  ✓ ${products.length} products seeded`);
-console.log('\nSetup complete. Run: node server.js\n');
+  const { rows: adminRows } = await client.execute('SELECT COUNT(*) as c FROM admin_users');
+  if (Number(adminRows[0].c) === 0) {
+    await client.execute({
+      sql: 'INSERT INTO admin_users (email, password_hash, name) VALUES (?, ?, ?)',
+      args: ['admin@theorganiccosmos.com', bcrypt.hashSync('Admin@TOC2025', 12), 'TOC Admin'],
+    });
+    console.log('  ✓ Admin created  →  admin@theorganiccosmos.com / Admin@TOC2025');
+  } else {
+    console.log('  · Admin already exists — skipping');
+  }
+
+  const { rows: countRows } = await client.execute('SELECT COUNT(*) as c FROM products');
+  if (Number(countRows[0].c) > 0) {
+    console.log(`  · ${countRows[0].c} products already in DB — skipping seed`);
+    return;
+  }
+
+  for (const p of products) {
+    await client.execute({
+      sql: `INSERT OR IGNORE INTO products
+        (name,category,sub,flavor,weight,servings,serving_size,protein,price,badge,in_stock,img,img_bg,sku,description,tags,variant_key,variant_map)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      args: [
+        p.name, p.category, p.sub || null, p.flavor,
+        p.weight || null, p.servings || 0, p.servingSize || null, p.protein || null,
+        p.price, p.badge || null, p.inStock ? 1 : 0,
+        p.img || null, p.imgBg || '#f0ede4', p.sku || null, p.description || null,
+        JSON.stringify(p.tags || []), p.variantKey || null, JSON.stringify(p.variantMap || {}),
+      ],
+    });
+  }
+
+  console.log(`  ✓ ${products.length} products seeded`);
+  console.log('\nSetup complete.\n');
+}
+
+seed().catch(err => { console.error(err); process.exit(1); });

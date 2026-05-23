@@ -66,6 +66,16 @@ async function init() {
     });
   }
 
+  const { rows } = await client.execute('SELECT COUNT(*) as c FROM admin_users');
+  if (Number(rows[0].c) === 0) {
+    const bcrypt = require('bcryptjs');
+    await client.execute({
+      sql: 'INSERT INTO admin_users (email, password_hash, name) VALUES (?, ?, ?)',
+      args: ['admin@theorganiccosmos.com', bcrypt.hashSync('Admin@TOC2025', 12), 'TOC Admin'],
+    });
+    console.log('Auto-seeded admin user');
+  }
+
   ready = true;
 }
 
